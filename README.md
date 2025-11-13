@@ -1,126 +1,105 @@
-# Restaurant Data Engineering Pipeline
+# Restaurant Data Pipeline
 
-This project implements a complete end-to-end ETL/ELT data pipeline for a restaurant business. 
-The pipeline ingests multiple data sources, applies a layered transformation approach 
-(Bronze → Silver → Gold), and produces analytics-ready datasets and KPI reports.
-
-The project is built for learning, portfolio demonstration, and real-world data engineering practice.
+A modular, production‑style data pipeline designed for a restaurant business.  
+The project follows a layered architecture (Bronze → Silver → Gold) and processes both CSV datasets and support ticket data retrieved from Azure Blob Storage.  
+All stages are orchestrated with **Dagster**, enabling reproducible and maintainable workflows.
 
 ---
 
-## Features
-
-- Ingestion of six CSV files (orders, customers, items, products, stores, supplies)
-- Ingestion of support tickets from Azure Blob Storage (JSONL) using a SAS link
-- Layered data processing:
-  - Bronze: raw data
-  - Silver: cleaned, standardized, schema-aligned models
-  - Gold: business-level marts for analytics
-- Final analytics outputs:
-  - Average order value
-  - Number of tickets per order
-- Fully orchestrated using Dagster
-
----
-
-## Project Structure
+## 1. Project Structure
 
 ```
 restaurant_pipeline/
 │
 ├── data/
-│   ├── bronze/      # raw inputs (CSV + JSONL)
-│   ├── silver/      # cleaned staging models
-│   └── gold/        # final marts
+│   ├── bronze/        # Raw data (CSV + JSONL from Azure)
+│   ├── silver/        # Cleaned staging data
+│   └── gold/          # Final curated models
+│
+├── reports/
+│   ├── tables/        # Analytics outputs (KPI tables)
+│   └── tickets_per_order.csv
 │
 ├── src/
-│   ├── transform_silver.py
-│   ├── transform_gold.py
-│   ├── extract_tickets.py
-│   └── analytics_models.py
+│   ├── extract_tickets.py      # Azure Blob ingestion
+│   ├── transform_silver.py     # Silver layer processing
+│   ├── transform_gold.py       # Gold model creation
+│   └── analytics_models.py     # KPI calculations
 │
-└── dagster_project/
-    └── etl_job.py   # Orchestration pipeline
+├── dagster_project/
+│   └── etl_job.py              # Orchestration logic
+│
+├── .env.template               # Environment variables (sample)
+├── .gitignore
+└── README.md
 ```
 
 ---
 
-## Pipeline Flow
+## 2. How the Pipeline Works
 
-1. Extract:
-   - Load CSV files
-   - Download support tickets from Azure Blob via SAS URL
+### Bronze Layer
+- Loads 6 raw CSV files.
+- Downloads support tickets from Azure Blob Storage (JSONL).
+- No transformations are applied.
 
-2. Silver (Staging):
-   - Clean columns
-   - Standardize schemas
-   - Normalize relationships
+### Silver Layer
+- Cleans and standardizes all fields.
+- Renames inconsistent columns.
+- Converts timestamps and numeric fields.
+- Produces `stg_*` tables.
 
-3. Gold (Marts):
-   - Join customers, orders, stores, items, tickets
-   - Calculate computed totals and number of tickets
-   - Produce orders_mart.csv
+### Gold Layer
+- Combines orders, customers, items, stores, products, and ticket counts.
+- Produces a fully curated model for analytics:  
+  **`orders_mart.csv`**
 
-4. Analytics:
-   - Generate high-level metrics as CSV reports
-
-5. Dagster Orchestration:
-   - Automates all steps end-to-end
+### Analytics Layer
+- Computes essential KPIs:
+  - Average order value  
+  - Number of support tickets per order
+- Stores outputs in `reports/`.
 
 ---
 
-## How to Run the Pipeline
+## 3. Running the Full Pipeline
 
-### 1. Install requirements
-```
-pip install -r requirements.txt
-```
-
-### 2. Run Dagster ETL Pipeline
 ```
 py -m dagster_project.etl_job
 ```
 
-This will automatically:
+Dagster executes:
+1. Extract Layer  
+2. Silver Layer  
+3. Gold Layer  
+4. Analytics Layer
 
-- extract data
-- transform Bronze → Silver → Gold
-- generate analytics reports
+---
 
-Final outputs appear in:
+## 4. Environment Setup
+
+Install dependencies:
+
 ```
-data/gold/orders_mart.csv
-data/reports/
+pip install -r requirements.txt
+```
+
+Create your `.env`:
+
+```
+cp .env.template .env
+```
+
+Add your Azure Blob SAS container URL:
+
+```
+AZURE_BLOB_CONTAINER_URL="your_url_here"
 ```
 
 ---
 
-## Notes
+## 5. Notes
 
-- The Azure Blob SAS link must be valid.  
-  If expired, update the link inside:  
-  `src/extract_tickets.py`
-
-- Pipeline steps are modular and can be run independently for debugging.
-
----
-
-## Technologies Used
-
-- Python (Pandas)
-- Dagster (orchestration)
-- Azure Blob Storage (external raw data)
-- Layered Data Architecture (bronze/silver/gold modeling)
-
----
-
-## Purpose
-
-This project was built to demonstrate:
-
-- practical ETL/ELT experience
-- data modeling skills
-- orchestration with Dagster
-- production-like data engineering patterns
-
-It is suitable for showcasing in CV, LinkedIn, and portfolio.
+- Sensitive credentials (e.g., `.env`) are excluded via `.gitignore`.
+- Processed data is not committed to the repository.
+- The project follows best practices for reproducible ETL workflows.

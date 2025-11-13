@@ -1,0 +1,23 @@
+# Python cache
+__pycache__/
+*.pyc
+
+# Environment secrets
+.env
+
+# Data folders (large files)
+data/bronze/*
+data/silver/*
+data/gold/*
+
+# Reports
+reports/*
+!reports/.gitkeep
+!data/.gitkeep
+
+# VS Code
+.vscode/
+
+# Virtual environments
+venv/
+.env/

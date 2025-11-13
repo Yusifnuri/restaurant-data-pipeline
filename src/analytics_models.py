@@ -4,37 +4,57 @@ from pathlib import Path
 import pandas as pd
 
 GOLD_DIR = Path("data/gold")
-REPORTS_DIR = Path("reports")
+SILVER_DIR = Path("data/silver")
+REPORTS_DIR = Path("reports/tables")
 
 
-def build_analytics():
-    """Create simple analytics outputs from the orders mart."""
+def ensure_dirs():
     REPORTS_DIR.mkdir(parents=True, exist_ok=True)
 
-    orders = pd.read_csv(GOLD_DIR / "orders_mart.csv")
 
-    # 1) Average order value (using order_total from source system)
-    avg_order_value = orders["order_total"].mean()
+def build_orders_metrics():
+    """
+    Build simple metrics for orders:
+      - average order value
+      - total number of orders
+      - total number of tickets
+    """
+    df = pd.read_csv(GOLD_DIR / "orders_mart.csv")
 
-    # 2) Number of tickets per order (currently num_tickets column)
-    #    Later this can be updated when support tickets are ingested.
-    tickets_per_order = orders[["order_id", "num_tickets"]]
+    metrics = {
+        "total_orders": len(df),
+        "average_order_value": df["order_total"].mean(),
+        "total_tickets": df["num_tickets"].sum(),
+    }
 
-    # Save metrics to a small CSV
-    metrics_df = pd.DataFrame(
-        [
-            {
-                "avg_order_value": avg_order_value,
-                "order_count": len(orders),
-            }
-        ]
+    out_path = REPORTS_DIR / "orders_metrics.csv"
+    pd.DataFrame([metrics]).to_csv(out_path, index=False)
+    print("orders_metrics.csv created")
+
+
+def build_tickets_per_order():
+    """
+    Build a table with ticket counts per order.
+    Source: silver stg_tickets.
+    """
+    tickets = pd.read_csv(SILVER_DIR / "stg_tickets.csv")
+
+    ticket_counts = (
+        tickets
+        .groupby("order_id", as_index=False)
+        .agg(num_tickets=("ticket_id", "count"))
     )
-    metrics_df.to_csv(REPORTS_DIR / "orders_metrics.csv", index=False)
 
-    tickets_per_order.to_csv(REPORTS_DIR / "tickets_per_order.csv", index=False)
+    out_path = REPORTS_DIR / "tickets_per_order.csv"
+    ticket_counts.to_csv(out_path, index=False)
+    print("tickets_per_order.csv created")
 
-    print("Analytics reports created: orders_metrics.csv, tickets_per_order.csv")
+
+def run_all_analytics():
+    ensure_dirs()
+    build_orders_metrics()
+    build_tickets_per_order()
 
 
 if __name__ == "__main__":
-    build_analytics()
+    run_all_analytics()

@@ -99,6 +99,58 @@ def build_stg_supplies():
     print("stg_supplies.csv created")
 
 
+def build_stg_tickets():
+    """
+    Transform support_tickets.jsonl → stg_tickets.
+
+    Input:
+        data/bronze/support_tickets.jsonl
+
+    Output:
+        data/silver/stg_tickets.csv
+    """
+    src_path = BRONZE_DIR / "support_tickets.jsonl"
+    df = pd.read_json(src_path, lines=True)
+
+    # Keep only relevant columns for joins and basic analytics
+    keep_cols = [
+        "ticket_id",
+        "order_id",
+        "customer_external_id",
+        "channel",
+        "priority",
+        "status",
+        "category",
+        "sentiment",
+        "sla_due_at",
+        "first_response_at",
+        "resolved_at",
+        "agent_id",
+        "updated_at",
+        "ingested_at",
+    ]
+    keep_cols = [c for c in keep_cols if c in df.columns]
+    df = df[keep_cols].copy()
+
+    # Drop rows without ticket_id or order_id
+    df = df.dropna(subset=["ticket_id", "order_id"])
+
+    # Parse datetime columns
+    datetime_cols = [
+        "sla_due_at",
+        "first_response_at",
+        "resolved_at",
+        "updated_at",
+        "ingested_at",
+    ]
+    for col in datetime_cols:
+        if col in df.columns:
+            df[col] = pd.to_datetime(df[col], errors="coerce")
+
+    df.to_csv(SILVER_DIR / "stg_tickets.csv", index=False)
+    print("stg_tickets.csv created")
+
+
 def run_all_silver():
     """Run all silver transformations in correct order."""
     ensure_dirs()
@@ -108,6 +160,7 @@ def run_all_silver():
     build_stg_products()
     build_stg_stores()
     build_stg_supplies()
+    build_stg_tickets()  # tickets staging added
 
 
 if __name__ == "__main__":
